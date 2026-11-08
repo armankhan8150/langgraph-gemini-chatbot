@@ -63,7 +63,7 @@ flowchart LR
     StreamlitUI -->|2. Stream Input with Thread ID| LangGraph[⚡ LangGraph Agent]
     LangGraph <-->|3. Manage State & Checkpoints| SQLite[(💾 SQLite DB)]
     LangGraph <-->|4. Generate Response| Gemini[🤖 Google Gemini API]
-    LangGraph -->|5. Token Stream| Streamlit UI
+    LangGraph -->|5. Token Stream| StreamlitUI
     StreamlitUI -->|6. Render Output| User
 ```
 
