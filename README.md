@@ -1,6 +1,6 @@
 # ✦ LangGraph Gemini Chatbot
 
-> A modern, stateful AI chat application built with **Streamlit**, **LangGraph**, and **Google Gemini**, featuring persistent SQLite checkpointer memory, real-time response streaming, and an elegant dark-mode interface.
+A conversational AI chatbot with persistent multi-thread chat history, token-by-token streaming, and a clean sidebar UI built with LangGraph, Google Gemini, and Streamlit.
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
@@ -17,18 +17,41 @@
 
 ---
 
-## ✨ Key Features
+## 🧠 How It Works
 
-- **⚡ Real-Time Token Streaming**: Streams Gemini replies chunk-by-chunk for smooth and responsive conversational interactions.
-- **🧠 Persistent Multi-Thread Memory**: Uses LangGraph's `SqliteSaver` to persist entire conversation states across sessions in a local SQLite database (`chatbot.db`).
-- **🗂️ Thread & History Management**:
-  - Automatically titles conversation sessions using the first prompt.
-  - Sidebar session list ordered by recent activity.
-  - Switch seamlessly between saved sessions or start a new thread.
-  - Delete individual threads along with their associated checkpoints.
-- **🎨 Modern Dark Glassmorphism UI**: Custom CSS theme with rich purple accents, clean message bubbles, responsive input containers, and mobile optimization.
-- **⚙️ Configurable Models**: Easily toggle or upgrade Gemini models (e.g., `gemini-3.5-flash-lite`, `gemini-1.5-pro`, `gemini-2.0-flash`) via environment variables.
-- **🛡️ Resilient Error Handling**: Graceful fallback handling for API rate limits, network interruptions, or missing credentials.
+```
+User Message
+    │
+    ▼
+┌─────────────────┐
+│  Streamlit UI    │  ──→  Manages threads, sidebar, and streaming display
+│   (app.py)       │
+└─────────────────┘
+    │
+    ▼
+┌─────────────────┐
+│  LangGraph       │  ──→  StateGraph compiles conversation flow
+│  StateGraph      │       and manages message history per thread
+│  (backend.py)    │
+└─────────────────┘
+    │
+    ▼
+┌─────────────────┐
+│  SQLite          │  ──→  Persists all thread state to chatbot.db
+│  Checkpointer    │       Survives app restarts
+└─────────────────┘
+    │
+    ▼
+┌─────────────────┐
+│  Gemini API      │  ──→  Streams token-by-token responses
+└─────────────────┘
+```
+
+### Key Design Decisions
+- **LangGraph StateGraph**: conversation state is managed as a graph, enabling reliable multi-turn memory
+- **SQLite persistence**: all threads saved locally, chat history survives restarts with no external database needed
+- **Thread isolation**: each conversation is a separate thread with its own independent history
+- **Streaming responses**: token-by-token output via Gemini API for a natural chat feel
 
 ---
 
@@ -40,7 +63,7 @@ flowchart LR
     StreamlitUI -->|2. Stream Input with Thread ID| LangGraph[⚡ LangGraph Agent]
     LangGraph <-->|3. Manage State & Checkpoints| SQLite[(💾 SQLite DB)]
     LangGraph <-->|4. Generate Response| Gemini[🤖 Google Gemini API]
-    LangGraph -->|5. Token Stream| StreamlitUI
+    LangGraph -->|5. Token Stream| Streamlit UI
     StreamlitUI -->|6. Render Output| User
 ```
 
@@ -50,21 +73,42 @@ flowchart LR
 
 ---
 
+## 🛠 Tech Stack
+
+| Component | Technology |
+|---|---|
+| LLM | Google Gemini (`gemini-2.5-flash`) |
+| Agent Framework | LangGraph |
+| LLM Integration | LangChain Google GenAI |
+| State Persistence | SQLite via `langgraph-checkpoint-sqlite` |
+| UI | Streamlit |
+| Language | Python 3.10+ |
+
+---
+
+## ✨ Features
+
+- 🔄 **Token-by-token streaming**: real-time response display
+- 💾 **Persistent chat history**: all conversations saved to local SQLite database
+- 🗂 **Multi-thread management**: create, switch between, and delete conversation threads
+- 📌 **Auto-generated titles**: thread titles generated from the first message
+- 🔃 **Sidebar sorted by recency**: most recent conversations always on top
+- 🌙 **Dark-themed UI**: clean, minimal interface
+- ⚠️ **Fallback handling**: graceful handling of rate limits and missing credentials
+
+---
+
 ## 📁 Project Structure
 
-```text
-langgraph-gemini-chatbot/
-├── .env.example              # Sample environment configuration file
-├── .gitignore                # Ignored files (secrets, database, caches)
-├── .streamlit/
-│   └── config.toml           # Streamlit theme & layout configuration
-├── app.py                    # Streamlit frontend & custom dark CSS styling
-├── backend.py                # LangGraph StateGraph, SQLite checkpointer & thread manager
-├── utils.py                  # Helper functions for message parsing & role mapping
-├── requirements.txt          # Required Python packages
-├── screenshots/
-│   └── demo.png              # UI preview screenshot
-└── chatbot.db                # SQLite database (auto-generated on first run)
+```
+├── app.py              # Streamlit frontend — UI, threads, streaming
+├── backend.py          # LangGraph StateGraph and Gemini integration
+├── utils.py            # Message parsing and role mapping
+├── .streamlit/         # Streamlit theme configuration
+├── screenshots/        # UI screenshots
+├── requirements.txt
+├── .env.example
+└── README.md
 ```
 
 ---
@@ -72,135 +116,60 @@ langgraph-gemini-chatbot/
 ## 🚀 Getting Started
 
 ### Prerequisites
+- Python 3.10+
+- Google AI Studio API key → [aistudio.google.com](https://aistudio.google.com)
 
-- **Python 3.10+** installed on your system.
-- A **Google Gemini API Key** from [Google AI Studio](https://aistudio.google.com/).
-
----
-
-### 1. Clone the Repository
+### Installation
 
 ```bash
+# 1. Clone the repository
 git clone https://github.com/armankhan8150/langgraph-gemini-chatbot.git
 cd langgraph-gemini-chatbot
-```
 
-### 2. Create and Activate a Virtual Environment
-
-**Windows (PowerShell):**
-```powershell
+# 2. Create a virtual environment
 python -m venv venv
-.\venv\Scripts\Activate.ps1
-```
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-**Windows (Command Prompt):**
-```cmd
-python -m venv venv
-venv\Scripts\activate.bat
-```
-
-**macOS / Linux:**
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
----
-
-### 3. Install Dependencies
-
-```bash
+# 3. Install dependencies
 pip install -r requirements.txt
-```
 
----
-
-### 4. Configure Environment Variables
-
-Create a `.env` file in the project root by copying the template:
-
-```bash
+# 4. Set up environment variables
 cp .env.example .env
+# Add your API key to .env
 ```
-*(On Windows Command Prompt, run: `copy .env.example .env`)*
 
-Open `.env` and insert your Google Gemini API key:
+### Environment Variables
 
 ```env
-GOOGLE_API_KEY=your_actual_gemini_api_key_here
-
-# Optional Configurations
-GEMINI_MODEL=gemini-3.5-flash-lite
-CHATBOT_DB_PATH=chatbot.db
+GOOGLE_API_KEY=your_google_api_key
+GEMINI_MODEL=gemini-2.5-flash-lite   # optional
+CHATBOT_DB_PATH=chatbot.db           # optional
 ```
 
----
-
-### 5. Run the Application
-
-Launch the Streamlit app:
+### Run
 
 ```bash
 streamlit run app.py
 ```
 
-The application will automatically open in your default browser at `http://localhost:8501`.
+---
+
+## 🗺 Roadmap
+
+- [ ] Export conversation history to Markdown or PDF
+- [ ] Support for OpenAI and Mistral as alternative LLMs
+- [ ] File and image upload support
+- [ ] Deployed hosted version
 
 ---
 
-## ⚙️ Configuration Options
+## 👤 Author
 
-You can customize the chatbot behavior by adding the following optional variables to your `.env` file:
-
-| Variable | Default Value | Description |
-| :--- | :--- | :--- |
-| `GOOGLE_API_KEY` | *(Required)* | Your Google Gemini API Key from Google AI Studio. |
-| `GEMINI_MODEL` | `gemini-3.5-flash-lite` | The Gemini model identifier to invoke. |
-| `CHATBOT_DB_PATH` | `chatbot.db` | File path for SQLite persistence checkpoints and thread metadata. |
-
----
-
-## 💡 How It Works
-
-- **Starting a Conversation**: Click **`＋ New Conversation`** in the sidebar or start typing right away.
-- **Automatic Titling**: The first message sent in a new conversation is used to generate an automatic title for that thread.
-- **Switching Chats**: Select any conversation from the sidebar list to resume context and view past chat history.
-- **Deleting Chats**: Click the **`🗑`** button next to any thread to delete its conversation record and checkpoints from the database.
-
----
-
-## 🛠️ Tech Stack
-
-- **UI Framework:** [Streamlit](https://streamlit.io/)
-- **Orchestration & State Management:** [LangGraph](https://langchain-ai.github.io/langgraph/)
-- **LLM Integration:** [LangChain Google GenAI](https://python.langchain.com/docs/integrations/chat/google_generative_ai/)
-- **Model:** Google Gemini (`gemini-3.5-flash-lite`)
-- **Persistence:** [SQLite](https://www.sqlite.org/) via `langgraph-checkpoint-sqlite`
-- **Environment Management:** [python-dotenv](https://github.com/theskumar/python-dotenv)
-
----
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome!
-Feel free to open an issue or submit a pull request:
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+**Arman Malik**: AI Engineer
+[LinkedIn](https://linkedin.com/in/arman-malik) · [GitHub](https://github.com/armankhan8150)
 
 ---
 
 ## 📄 License
 
-This project is open-source and licensed under the [MIT License](LICENSE).
-
----
-
-## 🌟 Acknowledgements
-
-- Built with [Google Gemini](https://ai.google.dev/)
-- Agentic workflow powered by [LangGraph](https://github.com/langchain-ai/langgraph)
-- UI powered by [Streamlit](https://streamlit.io/)
+MIT License: see [LICENSE](LICENSE) for details.
